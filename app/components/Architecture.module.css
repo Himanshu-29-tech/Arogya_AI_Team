@@ -1,0 +1,171 @@
+.section {
+  padding: 100px 0;
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.container {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.label {
+  display: inline-block;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #2a7d5f;
+  margin-bottom: 14px;
+}
+
+.title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  color: #111110;
+  margin-bottom: 14px;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.title em {
+  font-style: italic;
+  color: #2a7d5f;
+}
+
+.subtitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1rem;
+  color: #78716c;
+  max-width: 460px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+.diagramWrap {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 30px;
+  align-items: start;
+}
+
+/* ─── Diagram ─── */
+.diagram {
+  position: relative;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.7);
+  border-radius: 24px;
+  padding: 40px;
+  height: 340px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+}
+
+.node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: default;
+  z-index: 2;
+}
+
+.nodeCircle {
+  width: 54px; height: 54px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+
+.node:hover .nodeCircle {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+.nodeLabel {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #44403c;
+  text-align: center;
+  white-space: nowrap;
+  background: rgba(255,255,255,0.9);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+/* ─── Legend ─── */
+.legend {
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.7);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+}
+
+.legendTitle {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #111110;
+  margin-bottom: 18px;
+  letter-spacing: -0.01em;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.legendItem:last-child { border-bottom: none; }
+
+.legendIcon { font-size: 1rem; flex-shrink: 0; }
+
+.legendText {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.82rem;
+  color: #44403c;
+  line-height: 1.4;
+}
+
+@media (max-width: 860px) {
+  .diagramWrap { grid-template-columns: 1fr; }
+  .diagram { height: 280px; }
+}

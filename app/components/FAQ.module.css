@@ -1,0 +1,129 @@
+.section {
+  padding: 100px 0;
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 56px;
+}
+
+.label {
+  display: inline-block;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #2a7d5f;
+  margin-bottom: 14px;
+}
+
+.title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  color: #111110;
+  margin-bottom: 14px;
+  letter-spacing: -0.03em;
+}
+
+.title em { font-style: italic; color: #2a7d5f; }
+
+.subtitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1rem;
+  color: #78716c;
+  max-width: 400px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+/* ─── List ─── */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ─── Item ─── */
+.item {
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border: 1px solid rgba(255,255,255,0.7);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+}
+
+.item:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.07);
+}
+
+.item.open {
+  border-color: rgba(42,125,95,0.2);
+  box-shadow: 0 4px 20px rgba(42,125,95,0.08);
+}
+
+/* ─── Question ─── */
+.question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111110;
+  transition: color 0.2s ease;
+}
+
+.open .question { color: #2a7d5f; }
+
+.chevron {
+  flex-shrink: 0;
+  color: #78716c;
+  transition: transform 0.3s ease, color 0.2s ease;
+}
+
+.open .chevron {
+  transform: rotate(180deg);
+  color: #2a7d5f;
+}
+
+/* ─── Answer ─── */
+.answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.answerText {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.9rem;
+  color: #44403c;
+  line-height: 1.7;
+  padding: 0 24px 20px;
+}

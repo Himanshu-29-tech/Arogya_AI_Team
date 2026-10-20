@@ -39,13 +39,37 @@ export const authOptions = {
             role: user.role,
           };
         } catch (error) {
-          // If connection fails, return mock user for MVP demo if requested
-          if (error.message.includes('MONGODB_URI is not defined')) {
-             console.log('Using mock user for MVP demonstration since MongoDB is not connected');
-             if (credentials.email === 'demo@arogya.ai' && credentials.password === 'demo123') {
-                return { id: 'mock-1', name: 'Demo User', email: 'demo@arogya.ai', role: 'user' };
-             }
-             throw new Error('Please use demo@arogya.ai / demo123 for mock login');
+          console.error('Auth authorize error:', error.message);
+          // If MongoDB connection fails or is not configured, check demoStore
+          if (
+            error.message.includes('MONGODB_URI') ||
+            error.message.includes('ENOTFOUND') ||
+            error.message.includes('timed out') ||
+            error.message.includes('connect')
+          ) {
+            console.log('Using demo user fallback since MongoDB is not connected');
+            const { demoStore } = await import('@/lib/demoStore');
+            const normalizedEmail = credentials.email.toLowerCase().trim();
+            const demoUser = demoStore.users.get(normalizedEmail);
+
+            if (demoUser) {
+              const isMatch = await bcrypt.compare(credentials.password, demoUser.passwordHash);
+              if (isMatch) {
+                return {
+                  id: demoUser.id,
+                  name: demoUser.name,
+                  email: demoUser.email,
+                  role: demoUser.role,
+                };
+              } else {
+                throw new Error('Invalid password');
+              }
+            }
+
+            if (normalizedEmail === 'demo@arogya.ai' && credentials.password === 'demo123') {
+              return { id: 'mock-1', name: 'Demo User', email: 'demo@arogya.ai', role: 'user' };
+            }
+            throw new Error('User not found. Use demo@arogya.ai / demo123, or sign up with Create Account first.');
           }
           throw error;
         }

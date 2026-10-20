@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import connectToDatabase from '@/lib/mongodb';
 import User from '@/models/User';
+import { demoStore } from '@/lib/demoStore';
 
 export async function POST(req) {
   try {
@@ -11,25 +12,46 @@ export async function POST(req) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
-    await connectToDatabase();
+    const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return NextResponse.json({ message: 'User with this email already exists' }, { status: 400 });
+    try {
+      await connectToDatabase();
+
+      // Check if user exists in MongoDB
+      const existingUser = await User.findOne({ email: normalizedEmail });
+      if (existingUser) {
+        return NextResponse.json({ message: 'User with this email already exists' }, { status: 400 });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create user in MongoDB
+      await User.create({
+        name,
+        email: normalizedEmail,
+        password: hashedPassword,
+      });
+
+      return NextResponse.json({ message: 'User registered successfully' }, { status: 201 });
+    } catch (dbErr) {
+      console.warn('MongoDB connection unavailable, registering user in demo store:', dbErr.message);
+
+      if (demoStore.users.has(normalizedEmail)) {
+        return NextResponse.json({ message: 'User with this email already exists' }, { status: 400 });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      demoStore.users.set(normalizedEmail, {
+        id: `demo-${Date.now()}`,
+        name,
+        email: normalizedEmail,
+        passwordHash: hashedPassword,
+        role: 'user',
+      });
+
+      return NextResponse.json({ message: 'User registered successfully (demo session mode)' }, { status: 201 });
     }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    const newUser = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-    });
-
-    return NextResponse.json({ message: 'User registered successfully' }, { status: 201 });
   } catch (error) {
     console.error('Registration Error:', error);
     return NextResponse.json({ message: 'An error occurred during registration' }, { status: 500 });

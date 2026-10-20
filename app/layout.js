@@ -1,4 +1,5 @@
 import NextAuthProvider from './providers';
+import Navbar from './components/Navbar';
 import './globals.css';
 
 export const metadata = {
@@ -17,7 +18,12 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body><NextAuthProvider>{children}</NextAuthProvider></body>
+      <body>
+        <NextAuthProvider>
+          <Navbar />
+          {children}
+        </NextAuthProvider>
+      </body>
     </html>
   );
 }

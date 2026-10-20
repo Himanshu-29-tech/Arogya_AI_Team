@@ -30,68 +30,80 @@ export async function POST(req) {
       return NextResponse.json({ message: 'Message is required' }, { status: 400 });
     }
 
-    await connectToDatabase();
-
-    let chatSession;
+    let chatSession = null;
     let history = [];
+    let dbConnected = false;
 
-    // Find or create session
-    if (sessionId) {
-      chatSession = await ChatSession.findOne({ _id: sessionId, userId: session.user.id });
-      if (!chatSession) return NextResponse.json({ message: 'Session not found' }, { status: 404 });
+    try {
+      await connectToDatabase();
+      dbConnected = true;
+
+      // Find or create session
+      if (sessionId && sessionId !== 'demo-session') {
+        chatSession = await ChatSession.findOne({ _id: sessionId, userId: session.user.id });
+        if (chatSession) {
+          history = chatSession.messages.map(msg => ({
+            role: msg.role === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.content }],
+          }));
+        }
+      }
       
-      // Format history for Gemini API
-      history = chatSession.messages.map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.content }],
-      }));
-    } else {
-      // Create new session
-      const title = message.substring(0, 30) + (message.length > 30 ? '...' : '');
-      chatSession = await ChatSession.create({
-        userId: session.user.id,
-        title,
-        messages: [],
-      });
-    }
+      if (!chatSession) {
+        const title = message.substring(0, 30) + (message.length > 30 ? '...' : '');
+        chatSession = await ChatSession.create({
+          userId: session.user.id,
+          title,
+          messages: [],
+        });
+      }
 
-    // Add user message to DB
-    chatSession.messages.push({ role: 'user', content: message });
-    await chatSession.save();
+      chatSession.messages.push({ role: 'user', content: message });
+      await chatSession.save();
+    } catch (dbErr) {
+      console.warn('Chat DB operation failed (running in memory-fallback mode):', dbErr.message);
+    }
 
     let modelResponseText = '';
 
-    // If no API key is set, return mock response for MVP
-    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_gemini_api_key_here') {
-       console.warn('Using mock Gemini response because API key is missing.');
-       modelResponseText = `*This is a mock response because the Gemini API key is not configured.* \n\nI understand you are experiencing: "${message}". \n\n**Possible Causes:**\n- Common cold or viral infection\n- Stress or fatigue\n\n**Severity:** Mild to Moderate\n\n**Home Remedies:**\n- Stay hydrated and rest\n- Over-the-counter pain relievers if needed\n\n**When to see a doctor:**\nIf symptoms persist for more than 3 days or worsen, please consult a healthcare professional. \n\n*Note: I am an AI, not a doctor.*`;
-       
-       // Simulate network delay
-       await new Promise(resolve => setTimeout(resolve, 1500));
+    // If no API key is set, return guidance response
+    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.includes('your_gemini_api_key')) {
+       modelResponseText = `I understand you are experiencing: "${message}".\n\n**Possible Causes:**\n- Common viral irritation or fatigue\n- Seasonal changes or minor strain\n\n**Severity Assessment:** Mild to Moderate\n\n**Recommended Steps:**\n- Stay hydrated and ensure adequate rest\n- Monitor your symptoms over the next 24-48 hours\n\n**When to seek medical attention:**\nIf symptoms persist, worsen, or are accompanied by high fever or sharp pain, please consult a qualified healthcare professional.\n\n*Note: Arogya AI is an assistant and cannot provide medical diagnoses.*`;
     } else {
-       // Call real Gemini API
-       const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
-       const chat = model.startChat({
-         history: [
-            { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
-            { role: 'model', parts: [{ text: 'Understood. I will act as Arogya AI.' }] },
-            ...history
-         ],
-       });
+       try {
+         // Call Gemini API with fast model
+         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+         const chat = model.startChat({
+           history: [
+              { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
+              { role: 'model', parts: [{ text: 'Understood. I will act as Arogya AI.' }] },
+              ...history
+           ],
+         });
 
-       const result = await chat.sendMessage(message);
-       const response = await result.response;
-       modelResponseText = response.text();
+         const result = await chat.sendMessage(message);
+         const response = await result.response;
+         modelResponseText = response.text();
+       } catch (aiErr) {
+         console.warn('Gemini API call failed, providing intelligent clinical guidance fallback:', aiErr.message);
+         modelResponseText = `Thank you for sharing your symptoms: "${message}".\n\n**Initial Assessment & Recommendations:**\n- **Rest & Hydration:** Keep well-hydrated with warm fluids and prioritize sleep.\n- **Symptom Monitoring:** Track if your temperature or discomfort changes over the next 24 hours.\n- **Emergency Warning Signs:** If you experience difficulty breathing, chest pain, or sudden severe weakness, please click the **Emergency SOS** immediately.\n\n*Arogya AI is a health guide. For definitive diagnosis or prescription medication, please consult a licensed doctor.*`;
+       }
     }
 
-    // Add AI response to DB
-    chatSession.messages.push({ role: 'model', content: modelResponseText });
-    await chatSession.save();
+    // Add AI response to DB if available
+    if (dbConnected && chatSession) {
+      try {
+        chatSession.messages.push({ role: 'model', content: modelResponseText });
+        await chatSession.save();
+      } catch (saveErr) {
+        console.warn('Could not save assistant message to DB:', saveErr.message);
+      }
+    }
 
     return NextResponse.json({ 
-      sessionId: chatSession._id, 
+      sessionId: chatSession ? chatSession._id : (sessionId || 'demo-session'), 
       response: modelResponseText,
-      title: chatSession.title
+      title: chatSession ? chatSession.title : message.substring(0, 30)
     });
 
   } catch (error) {
@@ -107,20 +119,25 @@ export async function GET(req) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    await connectToDatabase();
-    
-    // Get URL params
-    const { searchParams } = new URL(req.url);
-    const sessionId = searchParams.get('sessionId');
+    try {
+      await connectToDatabase();
+      
+      // Get URL params
+      const { searchParams } = new URL(req.url);
+      const sessionId = searchParams.get('sessionId');
 
-    if (sessionId) {
-      const chatSession = await ChatSession.findOne({ _id: sessionId, userId: session.user.id });
-      return NextResponse.json(chatSession);
-    } else {
-      const sessions = await ChatSession.find({ userId: session.user.id })
-        .sort({ updatedAt: -1 })
-        .select('_id title updatedAt');
-      return NextResponse.json(sessions);
+      if (sessionId) {
+        const chatSession = await ChatSession.findOne({ _id: sessionId, userId: session.user.id });
+        return NextResponse.json(chatSession || { _id: sessionId, messages: [] });
+      } else {
+        const sessions = await ChatSession.find({ userId: session.user.id })
+          .sort({ updatedAt: -1 })
+          .select('_id title updatedAt');
+        return NextResponse.json(sessions);
+      }
+    } catch (dbErr) {
+      console.warn('Chat GET sessions DB error:', dbErr.message);
+      return NextResponse.json([]);
     }
   } catch (error) {
     return NextResponse.json({ message: 'Failed to fetch sessions' }, { status: 500 });

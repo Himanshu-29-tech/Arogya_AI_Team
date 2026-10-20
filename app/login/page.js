@@ -17,18 +17,27 @@ export default function Login() {
     setLoading(true);
     setError('');
 
-    const res = await signIn('credentials', {
-      redirect: false,
-      email,
-      password,
-    });
+    try {
+      const res = await signIn('credentials', {
+        redirect: false,
+        email: email.trim(),
+        password,
+      });
 
-    if (res?.error) {
-      setError(res.error);
+      if (res?.error) {
+        setError(res.error);
+        setLoading(false);
+      } else if (res?.ok) {
+        router.push('/dashboard');
+        router.refresh();
+      } else {
+        setError('Login failed. Please verify your credentials.');
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('Sign in exception:', err);
+      setError('An error occurred during sign in. Please try again.');
       setLoading(false);
-    } else {
-      router.push('/dashboard');
-      router.refresh();
     }
   };
 
@@ -84,14 +93,38 @@ export default function Login() {
 
           <button
             type="submit"
+            id="signin-btn"
             disabled={loading}
-            className="w-full py-3 mt-4 bg-text-primary text-white rounded-xl font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:hover:transform-none"
+            className="w-full py-3.5 mt-4 bg-[#111110] text-white rounded-xl font-semibold hover:bg-black hover:shadow-lg active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 text-base"
           >
-            {loading ? 'Logging in...' : 'Log In'}
+            {loading ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Signing In...</span>
+              </>
+            ) : (
+              <span>Sign In</span>
+            )}
           </button>
         </form>
 
-        <p className="text-center text-sm text-text-muted mt-6">
+        <div className="mt-4 pt-4 border-t border-border-card text-center">
+          <button
+            type="button"
+            onClick={() => {
+              setEmail('demo@arogya.ai');
+              setPassword('demo123');
+            }}
+            className="text-xs text-accent-green hover:underline font-medium bg-accent-green/10 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            ⚡ Quick Fill Demo Login (demo@arogya.ai / demo123)
+          </button>
+        </div>
+
+        <p className="text-center text-sm text-text-muted mt-4">
           Don't have an account?{' '}
           <Link href="/register" className="text-accent-green font-medium hover:underline">
             Sign up
